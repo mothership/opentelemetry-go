@@ -420,8 +420,8 @@ type Span interface {
 	// true if the Span is active and events can be recorded.
 	IsRecording() bool
 
-	// RecordError records an error as a Span event.
-	RecordError(err error, options ...EventOption)
+	// RecordException records an error as a Span event.
+	RecordException(err error, options ...EventOption)
 
 	// SpanContext returns the SpanContext of the Span. The returned
 	// SpanContext is usable even after the End has been called for the Span.

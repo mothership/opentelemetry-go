@@ -29,6 +29,7 @@ import (
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/label"
 	"go.opentelemetry.io/otel/oteltest"
+	"go.opentelemetry.io/otel/semconv"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/google/go-cmp/cmp"
@@ -1063,7 +1064,7 @@ func TestCustomStartEndTime(t *testing.T) {
 	}
 }
 
-func TestRecordError(t *testing.T) {
+func TestRecordException(t *testing.T) {
 	scenarios := []struct {
 		err error
 		typ string
@@ -1084,10 +1085,10 @@ func TestRecordError(t *testing.T) {
 	for _, s := range scenarios {
 		te := NewTestExporter()
 		tp := NewTracerProvider(WithSyncer(te))
-		span := startSpan(tp, "RecordError")
+		span := startSpan(tp, "RecordException")
 
 		errTime := time.Now()
-		span.RecordError(s.err, trace.WithTimestamp(errTime))
+		span.RecordException(s.err, trace.WithTimestamp(errTime))
 
 		got, err := endSpan(te, span)
 		if err != nil {
@@ -1106,15 +1107,15 @@ func TestRecordError(t *testing.T) {
 			HasRemoteParent: true,
 			MessageEvents: []trace.Event{
 				{
-					Name: errorEventName,
+					Name: semconv.ExceptionEventName,
 					Time: errTime,
 					Attributes: []label.KeyValue{
-						errorTypeKey.String(s.typ),
-						errorMessageKey.String(s.msg),
+						semconv.ExceptionTypeKey.String(s.typ),
+						semconv.ExceptionMessageKey.String(s.msg),
 					},
 				},
 			},
-			InstrumentationLibrary: instrumentation.Library{Name: "RecordError"},
+			InstrumentationLibrary: instrumentation.Library{Name: "RecordException"},
 		}
 		if diff := cmpDiff(got, want); diff != "" {
 			t.Errorf("SpanErrorOptions: -got +want %s", diff)
@@ -1122,12 +1123,12 @@ func TestRecordError(t *testing.T) {
 	}
 }
 
-func TestRecordErrorNil(t *testing.T) {
+func TestRecordExceptionNil(t *testing.T) {
 	te := NewTestExporter()
 	tp := NewTracerProvider(WithSyncer(te))
-	span := startSpan(tp, "RecordErrorNil")
+	span := startSpan(tp, "RecordExceptionNil")
 
-	span.RecordError(nil)
+	span.RecordException(nil)
 
 	got, err := endSpan(te, span)
 	if err != nil {
@@ -1145,7 +1146,7 @@ func TestRecordErrorNil(t *testing.T) {
 		HasRemoteParent:        true,
 		StatusCode:             codes.Unset,
 		StatusMessage:          "",
-		InstrumentationLibrary: instrumentation.Library{Name: "RecordErrorNil"},
+		InstrumentationLibrary: instrumentation.Library{Name: "RecordExceptionNil"},
 	}
 	if diff := cmpDiff(got, want); diff != "" {
 		t.Errorf("SpanErrorOptions: -got +want %s", diff)
@@ -1273,10 +1274,10 @@ func TestSpanCapturesPanic(t *testing.T) {
 	spans := te.Spans()
 	require.Len(t, spans, 1)
 	require.Len(t, spans[0].MessageEvents, 1)
-	assert.Equal(t, spans[0].MessageEvents[0].Name, errorEventName)
+	assert.Equal(t, spans[0].MessageEvents[0].Name, semconv.ExceptionEventName)
 	assert.Equal(t, spans[0].MessageEvents[0].Attributes, []label.KeyValue{
-		errorTypeKey.String("*errors.errorString"),
-		errorMessageKey.String("error message"),
+		semconv.ExceptionTypeKey.String("*errors.errorString"),
+		semconv.ExceptionMessageKey.String("error message"),
 	})
 }
 

@@ -23,6 +23,7 @@ import (
 
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/label"
+	"go.opentelemetry.io/otel/semconv"
 	"go.opentelemetry.io/otel/trace"
 
 	export "go.opentelemetry.io/otel/sdk/export/trace"
@@ -32,9 +33,7 @@ import (
 )
 
 const (
-	errorTypeKey    = label.Key("error.type")
-	errorMessageKey = label.Key("error.message")
-	errorEventName  = "error"
+	exceptionEventName = "exception"
 )
 
 // ReadOnlySpan allows reading information from the data structure underlying a
@@ -193,10 +192,10 @@ func (s *span) End(options ...trace.SpanOption) {
 		// Record but don't stop the panic.
 		defer panic(recovered)
 		s.addEvent(
-			errorEventName,
+			semconv.ExceptionEventName,
 			trace.WithAttributes(
-				errorTypeKey.String(typeStr(recovered)),
-				errorMessageKey.String(fmt.Sprint(recovered)),
+				semconv.ExceptionTypeKey.String(typeStr(recovered)),
+				semconv.ExceptionMessageKey.String(fmt.Sprint(recovered)),
 			),
 		)
 	}
@@ -228,17 +227,17 @@ func (s *span) End(options ...trace.SpanOption) {
 	}
 }
 
-func (s *span) RecordError(err error, opts ...trace.EventOption) {
+func (s *span) RecordException(err error, opts ...trace.EventOption) {
 	if s == nil || err == nil || !s.IsRecording() {
 		return
 	}
 
 	s.SetStatus(codes.Error, "")
 	opts = append(opts, trace.WithAttributes(
-		errorTypeKey.String(typeStr(err)),
-		errorMessageKey.String(err.Error()),
+		semconv.ExceptionTypeKey.String(typeStr(err)),
+		semconv.ExceptionMessageKey.String(err.Error()),
 	))
-	s.addEvent(errorEventName, opts...)
+	s.addEvent(semconv.ExceptionEventName, opts...)
 }
 
 func typeStr(i interface{}) string {

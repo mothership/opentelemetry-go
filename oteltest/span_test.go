@@ -27,6 +27,7 @@ import (
 	"go.opentelemetry.io/otel/internal/matchers"
 	"go.opentelemetry.io/otel/label"
 	"go.opentelemetry.io/otel/oteltest"
+	"go.opentelemetry.io/otel/semconv"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -124,7 +125,7 @@ func TestSpan(t *testing.T) {
 		})
 	})
 
-	t.Run("#RecordError", func(t *testing.T) {
+	t.Run("#RecordException", func(t *testing.T) {
 		tp := oteltest.NewTracerProvider()
 		t.Run("records an error", func(t *testing.T) {
 			t.Parallel()
@@ -156,14 +157,14 @@ func TestSpan(t *testing.T) {
 				e.Expect(ok).ToBeTrue()
 
 				testTime := time.Now()
-				subject.RecordError(s.err, trace.WithTimestamp(testTime))
+				subject.RecordException(s.err, trace.WithTimestamp(testTime))
 
 				expectedEvents := []oteltest.Event{{
 					Timestamp: testTime,
-					Name:      "error",
+					Name:      semconv.ExceptionEventName,
 					Attributes: map[label.Key]label.Value{
-						label.Key("error.type"):    label.StringValue(s.typ),
-						label.Key("error.message"): label.StringValue(s.msg),
+						semconv.ExceptionTypeKey:    label.StringValue(s.typ),
+						semconv.ExceptionMessageKey: label.StringValue(s.msg),
 					},
 				}}
 				e.Expect(subject.Events()).ToEqual(expectedEvents)
@@ -186,14 +187,14 @@ func TestSpan(t *testing.T) {
 			errMsg := "test error message"
 			testErr := ottest.NewTestError(errMsg)
 			testTime := time.Now()
-			subject.RecordError(testErr, trace.WithTimestamp(testTime))
+			subject.RecordException(testErr, trace.WithTimestamp(testTime))
 
 			expectedEvents := []oteltest.Event{{
 				Timestamp: testTime,
-				Name:      "error",
+				Name:      semconv.ExceptionEventName,
 				Attributes: map[label.Key]label.Value{
-					label.Key("error.type"):    label.StringValue("go.opentelemetry.io/otel/internal/internaltest.TestError"),
-					label.Key("error.message"): label.StringValue(errMsg),
+					semconv.ExceptionTypeKey:    label.StringValue("go.opentelemetry.io/otel/internal/internaltest.TestError"),
+					semconv.ExceptionMessageKey: label.StringValue(errMsg),
 				},
 			}}
 			e.Expect(subject.Events()).ToEqual(expectedEvents)
@@ -212,7 +213,7 @@ func TestSpan(t *testing.T) {
 			e.Expect(ok).ToBeTrue()
 
 			subject.End()
-			subject.RecordError(errors.New("ignored error"))
+			subject.RecordException(errors.New("ignored error"))
 
 			e.Expect(len(subject.Events())).ToEqual(0)
 		})
@@ -228,7 +229,7 @@ func TestSpan(t *testing.T) {
 			subject, ok := span.(*oteltest.Span)
 			e.Expect(ok).ToBeTrue()
 
-			subject.RecordError(nil)
+			subject.RecordException(nil)
 
 			e.Expect(len(subject.Events())).ToEqual(0)
 		})

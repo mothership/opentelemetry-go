@@ -71,8 +71,8 @@ func (noopSpan) SetAttributes(...label.KeyValue) {}
 // End does nothing.
 func (noopSpan) End(...SpanOption) {}
 
-// RecordError does nothing.
-func (noopSpan) RecordError(error, ...EventOption) {}
+// RecordException does nothing.
+func (noopSpan) RecordException(error, ...EventOption) {}
 
 // Tracer returns the Tracer that created this Span.
 func (noopSpan) Tracer() Tracer { return noopTracer{} }
